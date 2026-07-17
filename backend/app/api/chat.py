@@ -1,29 +1,34 @@
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter
+
+from app.schemas.chat import ChatRequest
+
 from app.ai.llm_provider import get_model
 
-router = APIRouter()
+
+router=APIRouter()
+
 
 
 @router.post("/chat")
 def chat(
-    message: str,
-    provider: str = "ollama"
+    request:ChatRequest
 ):
 
-    try:
-        model = get_model(provider)
 
-        response = model.invoke(message)
+    model=get_model(
+        request.provider
+    )
 
-        return {
-            "provider": provider,
-            "answer": response.content
-        }
 
-    except Exception as e:
-        print("ERROR:", str(e))
+    response=model.invoke(
+        request.message
+    )
 
-        raise HTTPException(
-            status_code=500,
-            detail=str(e)
-        )
+
+    return {
+
+        "provider":request.provider,
+
+        "answer":response.content
+
+    }

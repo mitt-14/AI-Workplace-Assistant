@@ -1,9 +1,15 @@
 from langchain_ollama import ChatOllama
 
+from app.core.config import settings
+
+
 
 def get_ollama_model():
 
     return ChatOllama(
-        model="llama3.1:8b",
-        temperature=0.7
+
+        model=settings.OLLAMA_MODEL,
+        
+        base_url=settings.OLLAMA_URL
+    
     )
