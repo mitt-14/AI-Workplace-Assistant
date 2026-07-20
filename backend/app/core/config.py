@@ -5,7 +5,7 @@ from pydantic_settings import BaseSettings, SettingsConfigDict
 
 class Settings(BaseSettings):
     app_name: str = "AI Workplace Assistant"
-    app_version: str = "1.0.0"
+    app_version: str = "0.2.0"
     environment: str = "development"
     log_level: str = "INFO"
 
@@ -32,6 +32,8 @@ class Settings(BaseSettings):
 
     default_search_results: int = 3
     maximum_search_results: int = 10
+
+    minimum_relevance_score: float = 0.44
     
     
     model_config = SettingsConfigDict(
