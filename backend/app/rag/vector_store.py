@@ -138,3 +138,60 @@ def delete_document_chunks(document_id: str) -> None:
         raise VectorStoreError(
             "Existing document chunks could not be deleted."
         ) from exc
+    
+
+def search_document_chunks(
+    *,
+    query_embedding: list[float],
+    top_k: int,
+    document_id: str | None = None,
+) -> dict[str, Any]:
+    """
+    Search ChromaDB for chunks nearest to a query embedding.
+
+    When document_id is supplied, results are restricted to that
+    uploaded document.
+    """
+
+    if not query_embedding:
+        raise VectorStoreError(
+            "The query embedding cannot be empty."
+        )
+
+    if top_k < 1:
+        raise VectorStoreError(
+            "The number of requested results must be at least one."
+        )
+
+    try:
+        collection = get_document_collection()
+
+        query_arguments: dict[str, Any] = {
+            "query_embeddings": [query_embedding],
+            "n_results": top_k,
+            "include": [
+                "documents",
+                "metadatas",
+                "distances",
+            ],
+        }
+
+        if document_id:
+            query_arguments["where"] = {
+                "document_id": document_id,
+            }
+
+        results = collection.query(**query_arguments)
+
+    except Exception as exc:
+        logger.exception(
+            "Vector search failed: top_k=%s document_id=%s",
+            top_k,
+            document_id,
+        )
+
+        raise VectorStoreError(
+            "The vector database search failed."
+        ) from exc
+
+    return results

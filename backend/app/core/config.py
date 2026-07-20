@@ -29,6 +29,9 @@ class Settings(BaseSettings):
 
     chunk_size: int = 1000
     chunk_overlap: int = 200
+
+    default_search_results: int = 3
+    maximum_search_results: int = 10
     
     
     model_config = SettingsConfigDict(

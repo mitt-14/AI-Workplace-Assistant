@@ -129,3 +129,14 @@ class VectorStoreError(ApplicationError):
             status_code=500,
             error_code="VECTOR_STORE_ERROR",
         )
+
+class SemanticSearchError(ApplicationError):
+    def __init__(
+        self,
+        message: str = "Semantic search failed.",
+    ) -> None:
+        super().__init__(
+            message=message,
+            status_code=500,
+            error_code="SEMANTIC_SEARCH_ERROR",
+        )
