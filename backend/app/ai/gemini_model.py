@@ -3,14 +3,9 @@ from langchain_google_genai import ChatGoogleGenerativeAI
 from app.core.config import settings
 
 
-
-def get_gemini_model():
-
-
+def get_gemini_model() -> ChatGoogleGenerativeAI:
     return ChatGoogleGenerativeAI(
-
-        model="gemini-2.0-flash",
-
-        google_api_key=settings.GEMINI_API_KEY
-
+        model=settings.gemini_model,
+        google_api_key=settings.gemini_api_key,
+        temperature=0.2,
     )

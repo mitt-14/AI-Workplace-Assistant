@@ -1,21 +1,48 @@
-from pydantic_settings import BaseSettings
+from functools import lru_cache
+
+from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
 class Settings(BaseSettings):
+    app_name: str = "AI Workplace Assistant"
+    app_version: str = "1.0.0"
+    environment: str = "development"
+    log_level: str = "INFO"
 
-    OLLAMA_URL:str="http://localhost:11434"
+    default_llm_provider: str = "ollama"
 
-    OLLAMA_MODEL:str="llama3.1"
+    ollama_model: str = "llama3.1"
+    ollama_base_url: str = "http://localhost:11434"
 
-    GEMINI_API_KEY:str | None=None
+    embedding_model: str = "embeddinggemma"
+    ollama_base_url: str = "http://localhost:11434"
 
-    DEFAULT_MODEL:str="ollama"
+    chroma_directory: str = "chroma_db"
+    chroma_collection_name: str = "workplace_documents"
+
+    gemini_api_key: str | None = None
+    gemini_model: str = "gemini-1.5-flash"
+
+    upload_directory: str = "uploads"
+    max_upload_size_mb: int = 10
+    allowed_file_types: str = "application/pdf,text/plain"
+
+    chunk_size: int = 1000
+    chunk_overlap: int = 200
+    
+    
+    model_config = SettingsConfigDict(
+        env_file=".env",
+        env_file_encoding="utf-8",
+        case_sensitive=False,
+        extra="ignore",
+        
+    )
 
 
-    class Config:
+@lru_cache
+def get_settings() -> Settings:
+    return Settings()
 
-        env_file=".env"
 
-
-
-settings = Settings()
+settings = get_settings()

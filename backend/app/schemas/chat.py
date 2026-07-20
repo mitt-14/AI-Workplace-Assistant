@@ -1,8 +1,23 @@
-from pydantic import BaseModel
+from typing import Literal
+
+from pydantic import BaseModel, Field
 
 
 class ChatRequest(BaseModel):
+    message: str = Field(
+        ...,
+        min_length=1,
+        max_length=5000,
+        description="The message sent to the AI assistant.",
+    )
 
-    message:str
+    provider: Literal["ollama", "gemini"] | None = Field(
+        default=None,
+        description="LLM provider used to generate the response.",
+    )
 
-    provider:str="ollama"
+
+class ChatResponse(BaseModel):
+    response: str
+    provider: str
+    model: str
