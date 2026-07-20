@@ -1,21 +1,42 @@
 # Python
+
 __pycache__/
 *.pyc
 
+
 # Virtual environments
+
 .aiass/
 venv/
-.env
+env/
 
-# Environment files
-.env.*
 
-# Vector databases
-chroma_db/
+# Environment
+
+backend/.env
+backend/.env.*
 
 # IDE
+
 .vscode/
 .idea/
 
+
 # OS
+
 .DS_Store
+
+
+# Database
+
+chroma_db/
+
+
+# Logs
+
+*.log
+
+#uploads/
+
+uploads/*
+!uploads/.gitkeep
