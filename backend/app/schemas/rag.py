@@ -46,6 +46,7 @@ class RagSource(BaseModel):
 class RagChatResponse(BaseModel):
     conversation_id: str
     question: str
+    retrieval_query: str
     answer: str
     provider: str
     embedding_model: str

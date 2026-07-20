@@ -15,6 +15,7 @@ from app.core.exceptions import (
 )
 from app.rag.prompt_builder import build_rag_prompt
 from app.rag.retriever import semantic_search
+from app.rag.query_rewriter import rewrite_search_query
 
 logger = logging.getLogger(__name__)
 
@@ -131,6 +132,12 @@ def answer_with_documents(
         limit=settings.maximum_conversation_messages,
     )
 
+    retrieval_query = rewrite_search_query(
+    question=cleaned_question,
+    conversation_history=conversation_history,
+    provider=provider,
+)
+
     # Save the current user message.
     add_message(
         conversation_id=conversation_id,
@@ -154,7 +161,7 @@ def answer_with_documents(
     )
 
     search_results = semantic_search(
-        query=cleaned_question,
+        query=retrieval_query,
         top_k=candidate_count,
         document_id=document_id,
     )
@@ -197,6 +204,7 @@ def answer_with_documents(
         return {
             "conversation_id": conversation_id,
             "answer": answer,
+            "retrieval_query": retrieval_query,
             "search_results": [],
             "sources": [],
         }
@@ -255,6 +263,7 @@ def answer_with_documents(
 
     return {
         "conversation_id": conversation_id,
+        "retrieval_query": retrieval_query,
         "answer": answer,
         "search_results": relevant_results,
         "sources": sources,

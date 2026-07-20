@@ -58,6 +58,7 @@ async def rag_chat(
             "conversation_id"
         ],
         question=request.question,
+        retrieval_query=result["retrieval_query"],
         answer=result["answer"],
         provider=request.provider,
         embedding_model=settings.embedding_model,
