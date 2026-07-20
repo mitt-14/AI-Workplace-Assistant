@@ -10,6 +10,7 @@ from app.schemas.rag import (
     RagSource,
 )
 
+
 router = APIRouter(
     prefix="/rag",
     tags=["RAG"],
@@ -36,6 +37,7 @@ async def rag_chat(
         provider=request.provider,
         top_k=top_k,
         document_id=request.document_id,
+        conversation_id=request.conversation_id,
     )
 
     sources = [
@@ -45,12 +47,16 @@ async def rag_chat(
 
     logger.info(
         "RAG API request completed: provider=%s "
-        "source_count=%s",
+        "source_count=%s conversation_id=%s",
         request.provider,
         len(sources),
+        result["conversation_id"],
     )
 
     return RagChatResponse(
+        conversation_id=result[
+            "conversation_id"
+        ],
         question=request.question,
         answer=result["answer"],
         provider=request.provider,

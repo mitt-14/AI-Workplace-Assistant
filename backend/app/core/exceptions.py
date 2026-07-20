@@ -140,3 +140,17 @@ class SemanticSearchError(ApplicationError):
             status_code=500,
             error_code="SEMANTIC_SEARCH_ERROR",
         )
+
+class ConversationNotFoundError(ApplicationError):
+    def __init__(
+        self,
+        conversation_id: str,
+    ) -> None:
+        super().__init__(
+            message=(
+                f"Conversation '{conversation_id}' "
+                "was not found."
+            ),
+            error_code="CONVERSATION_NOT_FOUND",
+            status_code=404,
+        )

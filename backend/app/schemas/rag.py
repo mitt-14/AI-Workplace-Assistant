@@ -11,6 +11,11 @@ class RagChatRequest(BaseModel):
         description="Question to answer using indexed documents.",
     )
 
+    conversation_id: str | None = Field(
+        default=None,
+        description="Existing conversation ID for persistent memory.",
+    )
+
     provider: Literal["ollama", "gemini"] = Field(
         default="ollama",
         description="LLM provider used to generate the answer.",
@@ -39,6 +44,7 @@ class RagSource(BaseModel):
 
 
 class RagChatResponse(BaseModel):
+    conversation_id: str
     question: str
     answer: str
     provider: str
