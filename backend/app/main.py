@@ -9,14 +9,20 @@ from app.api.chat import router as chat_router
 from app.api.documents import router as documents_router
 from app.api.search import router as search_router
 from app.api.rag import router as rag_router
+from app.api.conversations import (
+    router as conversations_router,
+)
+
 from app.core.config import settings
 from app.core.exceptions import ApplicationError
 from app.core.logging_config import configure_logging
+from app.core.conversation_store import (
+    initialize_conversation_database,
+)
 
 configure_logging()
 
 logger = logging.getLogger(__name__)
-
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
@@ -27,9 +33,14 @@ async def lifespan(app: FastAPI):
         settings.environment,
     )
 
+    initialize_conversation_database()
+
     yield
 
-    logger.info("Shutting down %s", settings.app_name)
+    logger.info(
+        "Shutting down %s",
+        settings.app_name,
+    )
 
 
 app = FastAPI(
@@ -134,5 +145,10 @@ app.include_router(
 
 app.include_router(
     rag_router,
+    prefix="/api",
+)
+
+app.include_router(
+    conversations_router,
     prefix="/api",
 )

@@ -27,6 +27,9 @@ class Settings(BaseSettings):
     max_upload_size_mb: int = 10
     allowed_file_types: str = "application/pdf,text/plain"
 
+    conversation_database_path: str = "data/conversations.db"
+    maximum_conversation_messages: int = 10
+
     chunk_size: int = 1000
     chunk_overlap: int = 200
 
