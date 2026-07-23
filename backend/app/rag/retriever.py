@@ -79,20 +79,59 @@ def semantic_search(
         metadata = metadata or {}
         numeric_distance = float(distance)
 
+        raw_page_number = metadata.get(
+            "page_number"
+        )
+
+        page_number: int | None = None
+
+        if raw_page_number is not None:
+            try:
+                parsed_page_number = int(
+                    raw_page_number
+                )
+
+                if parsed_page_number >= 1:
+                    page_number = parsed_page_number
+
+            except (
+                TypeError,
+                ValueError,
+            ):
+                logger.warning(
+                    "Ignoring invalid page metadata: "
+                    "chunk_id=%s page_number=%r",
+                    chunk_id,
+                    raw_page_number,
+                )
+
         search_results.append(
             {
-                "chunk_id": chunk_id,
+                "chunk_id": str(chunk_id),
                 "document_id": str(
-                    metadata.get("document_id", "")
+                    metadata.get(
+                        "document_id",
+                        "",
+                    )
                 ),
                 "filename": str(
-                    metadata.get("filename", "Unknown document")
+                    metadata.get(
+                        "filename",
+                        "Unknown document",
+                    )
                 ),
+                "page_number": page_number,
                 "chunk_index": int(
-                    metadata.get("chunk_index", 0)
+                    metadata.get(
+                        "chunk_index",
+                        0,
+                    )
                 ),
                 "text": text or "",
-                "distance": round(numeric_distance, 6),
+                "distance": round(
+                    numeric_distance,
+                    6,
+                ),
                 "relevance_score": distance_to_relevance(
                     numeric_distance
                 ),

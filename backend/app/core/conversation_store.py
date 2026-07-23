@@ -162,6 +162,52 @@ def get_conversation(
 
     return dict(row) if row else None
 
+def rename_conversation(
+    conversation_id: str,
+    title: str,
+) -> dict[str, Any] | None:
+    """
+    Rename an existing conversation.
+    """
+
+    cleaned_title = title.strip()
+
+    if not cleaned_title:
+        raise ValueError(
+            "Conversation title cannot be empty."
+        )
+
+    timestamp = utc_now()
+
+    with _database_lock:
+        with get_connection() as connection:
+            cursor = connection.execute(
+                """
+                UPDATE conversations
+                SET
+                    title = ?,
+                    updated_at = ?
+                WHERE conversation_id = ?
+                """,
+                (
+                    cleaned_title,
+                    timestamp,
+                    conversation_id,
+                ),
+            )
+
+            if cursor.rowcount == 0:
+                return None
+
+    logger.info(
+        "Conversation renamed: conversation_id=%s",
+        conversation_id,
+    )
+
+    return get_conversation(
+        conversation_id
+    )
+
 
 def list_conversations() -> list[dict[str, Any]]:
     with get_connection() as connection:
@@ -190,6 +236,102 @@ def list_conversations() -> list[dict[str, Any]]:
         for row in rows
     ]
 
+def search_conversations(
+    query: str,
+    limit: int = 20,
+    offset: int = 0,
+) -> tuple[list[dict[str, Any]], int]:
+    """
+    Search conversations by title or message content.
+
+    Returns:
+        A tuple containing the matching conversations and
+        the total number of matches before pagination.
+    """
+
+    cleaned_query = query.strip()
+
+    if not cleaned_query:
+        return [], 0
+
+    search_pattern = (
+        f"%{cleaned_query.lower()}%"
+    )
+
+    matching_condition = """
+        (
+            LOWER(c.title) LIKE ?
+            OR EXISTS (
+                SELECT 1
+                FROM conversation_messages search_message
+                WHERE
+                    search_message.conversation_id =
+                        c.conversation_id
+                    AND LOWER(search_message.content) LIKE ?
+            )
+        )
+    """
+
+    with get_connection() as connection:
+        count_row = connection.execute(
+            f"""
+            SELECT COUNT(*) AS total_count
+            FROM conversations c
+            WHERE {matching_condition}
+            """,
+            (
+                search_pattern,
+                search_pattern,
+            ),
+        ).fetchone()
+
+        rows = connection.execute(
+            f"""
+            SELECT
+                c.conversation_id,
+                c.title,
+                c.created_at,
+                c.updated_at,
+                (
+                    SELECT COUNT(*)
+                    FROM conversation_messages count_message
+                    WHERE
+                        count_message.conversation_id =
+                            c.conversation_id
+                ) AS message_count
+            FROM conversations c
+            WHERE {matching_condition}
+            ORDER BY c.updated_at DESC
+            LIMIT ? OFFSET ?
+            """,
+            (
+                search_pattern,
+                search_pattern,
+                limit,
+                offset,
+            ),
+        ).fetchall()
+
+    total_count = (
+        int(count_row["total_count"])
+        if count_row
+        else 0
+    )
+
+    conversations = [
+        dict(row)
+        for row in rows
+    ]
+
+    logger.info(
+        "Conversation search completed: "
+        "query=%s results=%s total=%s",
+        cleaned_query,
+        len(conversations),
+        total_count,
+    )
+
+    return conversations, total_count
 
 def add_message(
     *,

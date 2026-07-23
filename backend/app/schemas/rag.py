@@ -38,9 +38,21 @@ class RagSource(BaseModel):
     chunk_id: str
     document_id: str
     filename: str
+
+    page_number: int | None = Field(
+        default=None,
+        ge=1,
+        description=(
+            "One-based source page number. "
+            "None is returned for legacy indexed chunks."
+        ),
+    )
+
     chunk_index: int
+
     relevance_score: float
-    text_preview: str
+
+    text_preview: str    
 
 
 class RagChatResponse(BaseModel):
