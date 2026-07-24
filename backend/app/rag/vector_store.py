@@ -195,3 +195,26 @@ def search_document_chunks(
         ) from exc
 
     return results
+
+def get_all_document_chunks(
+    document_id: str | None = None,
+) -> dict:
+    """
+    Retrieve every indexed chunk for BM25 indexing.
+    """
+
+    collection = get_document_collection()
+
+    kwargs = {
+        "include": [
+            "documents",
+            "metadatas",
+        ]
+    }
+
+    if document_id is not None:
+        kwargs["where"] = {
+            "document_id": document_id
+        }
+
+    return collection.get(**kwargs)

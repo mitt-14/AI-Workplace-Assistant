@@ -37,6 +37,9 @@ class Settings(BaseSettings):
     maximum_search_results: int = 10
 
     minimum_relevance_score: float = 0.44
+
+    hybrid_semantic_weight: float = 0.7
+    hybrid_keyword_weight: float = 0.3
     
     
     model_config = SettingsConfigDict(

@@ -62,9 +62,10 @@ async def rag_chat(
     result = answer_with_documents(
         question=request.question,
         provider=request.provider,
-        top_k=top_k,
+        top_k=request.top_k,
         document_id=request.document_id,
         conversation_id=request.conversation_id,
+        retrieval_mode=request.retrieval_mode,
     )
 
     sources = [
@@ -86,6 +87,10 @@ async def rag_chat(
         ],
         question=request.question,
         retrieval_query=result["retrieval_query"],
+        retrieval_mode=result.get(
+        "retrieval_mode",
+        request.retrieval_mode,
+        ),
         answer=result["answer"],
         provider=request.provider,
         embedding_model=settings.embedding_model,
@@ -117,9 +122,10 @@ async def stream_rag_chat(
         events = stream_answer_with_documents(
             question=request.question,
             provider=request.provider,
-            top_k=top_k,
+            top_k=request.top_k,
             document_id=request.document_id,
             conversation_id=request.conversation_id,
+            retrieval_mode=request.retrieval_mode,
         )
 
         for event in events:

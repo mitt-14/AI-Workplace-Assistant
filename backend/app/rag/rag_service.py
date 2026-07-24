@@ -1,7 +1,9 @@
+from __future__ import annotations
 import logging
-from dataclasses import dataclass
+
 from collections.abc import Iterator
-from typing import Any
+from dataclasses import dataclass
+from typing import Any, Literal
 
 from app.ai.llm_provider import get_model
 from app.core.config import settings
@@ -15,12 +17,21 @@ from app.core.exceptions import (
     ConversationNotFoundError,
     SemanticSearchError,
 )
+from app.rag.hybrid_retriever import hybrid_search
+from app.rag.keyword_retriever import keyword_search
 from app.rag.prompt_builder import build_rag_prompt
 from app.rag.query_rewriter import rewrite_search_query
 from app.rag.retriever import semantic_search
 
 
 logger = logging.getLogger(__name__)
+
+
+RetrievalMode = Literal[
+    "semantic",
+    "keyword",
+    "hybrid",
+]
 
 
 @dataclass
@@ -33,6 +44,7 @@ class PreparedRAGRequest:
     question: str
     provider: str
     retrieval_query: str
+    retrieval_mode: RetrievalMode
     conversation_history: list[dict[str, Any]]
     search_results: list[dict[str, Any]]
     sources: list[dict[str, Any]]
@@ -57,12 +69,13 @@ def extract_model_answer(response: Any) -> str:
 
     return str(response).strip()
 
+
 def extract_stream_chunk_text(chunk: Any) -> str:
     """
     Extract text from a streamed LangChain model chunk.
 
-    Unlike extract_model_answer(), this function does not strip
-    whitespace because spaces between streamed chunks must be preserved.
+    Whitespace is not stripped because spaces between streamed
+    chunks must be preserved.
     """
 
     if hasattr(chunk, "content"):
@@ -94,11 +107,39 @@ def extract_stream_chunk_text(chunk: Any) -> str:
     return str(content)
 
 
+def optional_float(value: Any) -> float | None:
+    """
+    Safely convert a value to float while preserving None.
+    """
+
+    if value is None:
+        return None
+
+    try:
+        return float(value)
+    except (TypeError, ValueError):
+        return None
+
+
+def optional_int(value: Any) -> int | None:
+    """
+    Safely convert a value to int while preserving None.
+    """
+
+    if value is None:
+        return None
+
+    try:
+        return int(value)
+    except (TypeError, ValueError):
+        return None
+
+
 def build_sources(
     search_results: list[dict[str, Any]],
 ) -> list[dict[str, Any]]:
     """
-    Convert retrieved chunks into API and persistent source objects.
+    Convert retrieved document chunks into API source objects.
     """
 
     sources: list[dict[str, Any]] = []
@@ -113,47 +154,21 @@ def build_sources(
         if len(text) > 300:
             text_preview += "..."
 
-        raw_page_number = result.get(
-            "page_number"
+        retrieval_methods = result.get(
+            "retrieval_methods",
+            [],
         )
 
-        page_number: int | None = None
-
-        if raw_page_number is not None:
-            try:
-                parsed_page_number = int(
-                    raw_page_number
-                )
-
-                if parsed_page_number >= 1:
-                    page_number = (
-                        parsed_page_number
-                    )
-
-            except (
-                TypeError,
-                ValueError,
-            ):
-                logger.warning(
-                    "Invalid source page number ignored: "
-                    "chunk_id=%s value=%r",
-                    result.get("chunk_id"),
-                    raw_page_number,
-                )
+        if not isinstance(retrieval_methods, list):
+            retrieval_methods = []
 
         sources.append(
             {
                 "chunk_id": str(
-                    result.get(
-                        "chunk_id",
-                        "",
-                    )
+                    result.get("chunk_id", "")
                 ),
                 "document_id": str(
-                    result.get(
-                        "document_id",
-                        "",
-                    )
+                    result.get("document_id", "")
                 ),
                 "filename": str(
                     result.get(
@@ -161,24 +176,115 @@ def build_sources(
                         "Unknown document",
                     )
                 ),
-                "page_number": page_number,
-                "chunk_index": int(
+                "page_number": optional_int(
+                    result.get("page_number")
+                ),
+                "chunk_index": optional_int(
+                    result.get("chunk_index")
+                ),
+                "page_chunk_index": optional_int(
+                    result.get("page_chunk_index")
+                ),
+                "relevance_score": optional_float(
+                    result.get("relevance_score")
+                ),
+                "keyword_score": optional_float(
+                    result.get("keyword_score")
+                ),
+                "normalized_semantic_score": optional_float(
                     result.get(
-                        "chunk_index",
-                        0,
+                        "normalized_semantic_score"
                     )
                 ),
-                "relevance_score": float(
+                "normalized_keyword_score": optional_float(
                     result.get(
-                        "relevance_score",
-                        0.0,
+                        "normalized_keyword_score"
                     )
                 ),
+                "hybrid_score": optional_float(
+                    result.get("hybrid_score")
+                ),
+                "retrieval_methods": [
+                    str(method)
+                    for method in retrieval_methods
+                ],
                 "text_preview": text_preview,
             }
         )
 
     return sources
+
+
+def retrieve_context(
+    *,
+    query: str,
+    top_k: int,
+    document_id: str | None,
+    retrieval_mode: RetrievalMode,
+) -> list[dict[str, Any]]:
+    """
+    Retrieve chunks using the selected retrieval method.
+    """
+
+    if retrieval_mode == "semantic":
+        candidate_count = min(
+            top_k * 3,
+            settings.maximum_search_results,
+        )
+
+        search_results = semantic_search(
+            query=query,
+            top_k=candidate_count,
+            document_id=document_id,
+        )
+
+        relevant_results = [
+            result
+            for result in search_results
+            if float(
+                result.get(
+                    "relevance_score",
+                    0.0,
+                )
+            )
+            >= settings.minimum_relevance_score
+        ]
+
+        for result in relevant_results:
+            result.setdefault(
+                "retrieval_methods",
+                ["semantic"],
+            )
+
+        return relevant_results[:top_k]
+
+    if retrieval_mode == "keyword":
+        search_results = keyword_search(
+            query=query,
+            top_k=top_k,
+            document_id=document_id,
+        )
+
+        for result in search_results:
+            result.setdefault(
+                "retrieval_methods",
+                ["keyword"],
+            )
+
+        return search_results
+
+    if retrieval_mode == "hybrid":
+        return hybrid_search(
+            query=query,
+            top_k=top_k,
+            document_id=document_id,
+            semantic_weight=settings.hybrid_semantic_weight,
+            keyword_weight=settings.hybrid_keyword_weight,
+        )
+
+    raise ValueError(
+        f"Unsupported retrieval mode: {retrieval_mode}"
+    )
 
 
 def resolve_conversation_id(
@@ -234,6 +340,7 @@ def prepare_rag_request(
     top_k: int,
     document_id: str | None = None,
     conversation_id: str | None = None,
+    retrieval_mode: RetrievalMode = "hybrid",
 ) -> PreparedRAGRequest:
     """
     Prepare everything required before generating an LLM answer.
@@ -242,14 +349,12 @@ def prepare_rag_request(
 
     1. Question validation
     2. Conversation creation or validation
-    3. Conversation history loading
+    3. Conversation-history loading
     4. Follow-up query rewriting
     5. User-message storage
-    6. Semantic retrieval
-    7. Relevance filtering
+    6. Semantic, keyword, or hybrid retrieval
+    7. Source construction
     8. Prompt construction
-
-    Both normal and streaming RAG endpoints can reuse this function.
     """
 
     cleaned_question = question.strip()
@@ -259,14 +364,26 @@ def prepare_rag_request(
             "The RAG question cannot be empty."
         )
 
+    if top_k <= 0:
+        raise ValueError(
+            "top_k must be greater than zero."
+        )
+
+    if retrieval_mode not in {
+        "semantic",
+        "keyword",
+        "hybrid",
+    }:
+        raise ValueError(
+            f"Unsupported retrieval mode: {retrieval_mode}"
+        )
+
     resolved_conversation_id = resolve_conversation_id(
         conversation_id=conversation_id,
         question=cleaned_question,
     )
 
     # Load previous messages before saving the current question.
-    # This prevents the current question from appearing twice
-    # in the conversation history sent to the model.
     conversation_history = get_messages(
         resolved_conversation_id,
         limit=settings.maximum_conversation_messages,
@@ -278,7 +395,6 @@ def prepare_rag_request(
         provider=provider,
     )
 
-    # Save the current question after loading prior history.
     add_message(
         conversation_id=resolved_conversation_id,
         role="user",
@@ -287,57 +403,41 @@ def prepare_rag_request(
 
     logger.info(
         "Preparing RAG request: provider=%s top_k=%s "
-        "document_id=%s conversation_id=%s",
+        "retrieval_mode=%s document_id=%s "
+        "conversation_id=%s",
         provider,
         top_k,
+        retrieval_mode,
         document_id,
         resolved_conversation_id,
     )
 
-    candidate_count = min(
-        top_k * 3,
-        settings.maximum_search_results,
-    )
-
-    search_results = semantic_search(
+    search_results = retrieve_context(
         query=retrieval_query,
-        top_k=candidate_count,
+        top_k=top_k,
         document_id=document_id,
+        retrieval_mode=retrieval_mode,
     )
-
-    relevant_results = [
-        result
-        for result in search_results
-        if float(
-            result.get(
-                "relevance_score",
-                0.0,
-            )
-        )
-        >= settings.minimum_relevance_score
-    ]
-
-    relevant_results = relevant_results[:top_k]
 
     sources = build_sources(
-        relevant_results
+        search_results
     )
 
     prompt: str | None = None
 
-    if relevant_results:
+    if search_results:
         prompt = build_rag_prompt(
             question=cleaned_question,
-            search_results=relevant_results,
+            search_results=search_results,
             conversation_history=conversation_history,
         )
 
     logger.info(
         "RAG request prepared: conversation_id=%s "
-        "candidate_count=%s relevant_count=%s",
+        "retrieval_mode=%s retrieved_count=%s",
         resolved_conversation_id,
+        retrieval_mode,
         len(search_results),
-        len(relevant_results),
     )
 
     return PreparedRAGRequest(
@@ -345,8 +445,9 @@ def prepare_rag_request(
         question=cleaned_question,
         provider=provider,
         retrieval_query=retrieval_query,
+        retrieval_mode=retrieval_mode,
         conversation_history=conversation_history,
-        search_results=relevant_results,
+        search_results=search_results,
         sources=sources,
         prompt=prompt,
     )
@@ -359,6 +460,7 @@ def answer_with_documents(
     top_k: int,
     document_id: str | None = None,
     conversation_id: str | None = None,
+    retrieval_mode: RetrievalMode = "hybrid",
 ) -> dict[str, Any]:
     """
     Generate a complete non-streaming RAG response.
@@ -370,6 +472,7 @@ def answer_with_documents(
         top_k=top_k,
         document_id=document_id,
         conversation_id=conversation_id,
+        retrieval_mode=retrieval_mode,
     )
 
     if not prepared.search_results:
@@ -386,14 +489,16 @@ def answer_with_documents(
         )
 
         logger.info(
-            "RAG request completed without relevant results: "
-            "conversation_id=%s",
+            "RAG request completed without results: "
+            "conversation_id=%s retrieval_mode=%s",
             prepared.conversation_id,
+            prepared.retrieval_mode,
         )
 
         return {
             "conversation_id": prepared.conversation_id,
             "retrieval_query": prepared.retrieval_query,
+            "retrieval_mode": prepared.retrieval_mode,
             "answer": answer,
             "search_results": [],
             "sources": [],
@@ -441,21 +546,23 @@ def answer_with_documents(
 
     logger.info(
         "RAG request completed: provider=%s "
-        "retrieved_chunks=%s model=%s "
+        "retrieval_mode=%s retrieved_chunks=%s "
         "conversation_id=%s",
         prepared.provider,
+        prepared.retrieval_mode,
         len(prepared.search_results),
-        settings.embedding_model,
         prepared.conversation_id,
     )
 
     return {
         "conversation_id": prepared.conversation_id,
         "retrieval_query": prepared.retrieval_query,
+        "retrieval_mode": prepared.retrieval_mode,
         "answer": answer,
         "search_results": prepared.search_results,
         "sources": prepared.sources,
     }
+
 
 def stream_answer_with_documents(
     *,
@@ -464,6 +571,7 @@ def stream_answer_with_documents(
     top_k: int,
     document_id: str | None = None,
     conversation_id: str | None = None,
+    retrieval_mode: RetrievalMode = "hybrid",
 ) -> Iterator[dict[str, Any]]:
     """
     Stream a grounded RAG response as structured events.
@@ -478,20 +586,20 @@ def stream_answer_with_documents(
         top_k=top_k,
         document_id=document_id,
         conversation_id=conversation_id,
+        retrieval_mode=retrieval_mode,
     )
 
-    # Send conversation information first.
     yield {
         "event": "start",
         "data": {
             "conversation_id": prepared.conversation_id,
             "question": prepared.question,
             "retrieval_query": prepared.retrieval_query,
+            "retrieval_mode": prepared.retrieval_mode,
             "provider": prepared.provider,
         },
     }
 
-    # Return the normal fallback when retrieval found no useful chunks.
     if not prepared.search_results:
         answer = (
             "I could not find enough information "
@@ -508,6 +616,7 @@ def stream_answer_with_documents(
         yield {
             "event": "sources",
             "data": {
+                "retrieval_mode": prepared.retrieval_mode,
                 "retrieved_chunk_count": 0,
                 "sources": [],
             },
@@ -524,14 +633,16 @@ def stream_answer_with_documents(
             "event": "done",
             "data": {
                 "conversation_id": prepared.conversation_id,
+                "retrieval_mode": prepared.retrieval_mode,
                 "status": "completed",
             },
         }
 
         logger.info(
-            "Streaming RAG request completed without relevant "
-            "results: conversation_id=%s",
+            "Streaming RAG request completed without results: "
+            "conversation_id=%s retrieval_mode=%s",
             prepared.conversation_id,
+            prepared.retrieval_mode,
         )
 
         return
@@ -549,10 +660,10 @@ def stream_answer_with_documents(
 
         return
 
-    # Send sources before model generation starts.
     yield {
         "event": "sources",
         "data": {
+            "retrieval_mode": prepared.retrieval_mode,
             "retrieved_chunk_count": len(
                 prepared.search_results
             ),
@@ -641,8 +752,10 @@ def stream_answer_with_documents(
 
     logger.info(
         "Streaming RAG request completed: provider=%s "
-        "retrieved_chunks=%s conversation_id=%s",
+        "retrieval_mode=%s retrieved_chunks=%s "
+        "conversation_id=%s",
         prepared.provider,
+        prepared.retrieval_mode,
         len(prepared.search_results),
         prepared.conversation_id,
     )
@@ -651,6 +764,7 @@ def stream_answer_with_documents(
         "event": "done",
         "data": {
             "conversation_id": prepared.conversation_id,
+            "retrieval_mode": prepared.retrieval_mode,
             "status": "completed",
         },
     }
