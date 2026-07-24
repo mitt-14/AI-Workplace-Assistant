@@ -1,16 +1,19 @@
-import logging
 import json
+import logging
 from collections.abc import Iterator
 from typing import Any
+
 from fastapi import APIRouter
 from fastapi.responses import StreamingResponse
 
 from app.core.config import settings
 from app.rag.rag_service import (
     answer_with_documents,
+    evaluate_retrieval,
     stream_answer_with_documents,
 )
 from app.schemas.rag import (
+    RAGEvaluationResponse,
     RagChatRequest,
     RagChatResponse,
     RagSource,
@@ -23,6 +26,7 @@ router = APIRouter(
 )
 
 logger = logging.getLogger(__name__)
+
 
 def encode_sse_event(
     event: dict[str, Any],
@@ -54,6 +58,10 @@ def encode_sse_event(
 async def rag_chat(
     request: RagChatRequest,
 ) -> RagChatResponse:
+    """
+    Generate a conversation-aware RAG answer.
+    """
+
     top_k = min(
         request.top_k,
         settings.maximum_search_results,
@@ -62,7 +70,7 @@ async def rag_chat(
     result = answer_with_documents(
         question=request.question,
         provider=request.provider,
-        top_k=request.top_k,
+        top_k=top_k,
         document_id=request.document_id,
         document_ids=request.document_ids,
         conversation_id=request.conversation_id,
@@ -87,10 +95,12 @@ async def rag_chat(
             "conversation_id"
         ],
         question=request.question,
-        retrieval_query=result["retrieval_query"],
+        retrieval_query=result[
+            "retrieval_query"
+        ],
         retrieval_mode=result.get(
-        "retrieval_mode",
-        request.retrieval_mode,
+            "retrieval_mode",
+            request.retrieval_mode,
         ),
         answer=result["answer"],
         provider=request.provider,
@@ -99,8 +109,10 @@ async def rag_chat(
             result["search_results"]
         ),
         sources=sources,
+        metrics=result["metrics"],
         status="completed",
     )
+
 
 @router.post(
     "/chat/stream",
@@ -150,4 +162,44 @@ async def stream_rag_chat(
             "Connection": "keep-alive",
             "X-Accel-Buffering": "no",
         },
+    )
+
+
+@router.post(
+    "/evaluate",
+    response_model=RAGEvaluationResponse,
+    summary="Evaluate document retrieval without generating an answer",
+)
+async def evaluate_rag(
+    request: RagChatRequest,
+) -> RAGEvaluationResponse:
+    """
+    Evaluate the RAG retrieval pipeline without invoking
+    the answer-generation model.
+    """
+
+    top_k = min(
+        request.top_k,
+        settings.maximum_search_results,
+    )
+
+    result = evaluate_retrieval(
+        question=request.question,
+        provider=request.provider,
+        top_k=top_k,
+        document_id=request.document_id,
+        document_ids=request.document_ids,
+        conversation_id=request.conversation_id,
+        retrieval_mode=request.retrieval_mode,
+    )
+
+    logger.info(
+        "RAG evaluation completed: "
+        "retrieval_mode=%s retrieved_chunks=%s",
+        request.retrieval_mode,
+        len(result["search_results"]),
+    )
+
+    return RAGEvaluationResponse(
+        **result
     )

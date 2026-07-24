@@ -137,6 +137,31 @@ class RAGSearchResult(BaseModel):
         default_factory=list
     )
 
+class RAGMetrics(BaseModel):
+    """
+    Timing and quality metrics collected during
+    a RAG request.
+    """
+
+    retrieval_time_ms: float
+
+    generation_time_ms: float
+
+    total_time_ms: float
+
+    retrieved_chunk_count: int
+
+    documents_retrieved: int
+
+    average_relevance_score: float | None = None
+    highest_relevance_score: float | None = None
+    lowest_relevance_score: float | None = None
+
+    average_keyword_score: float | None = None
+
+    average_hybrid_score: float | None = None
+
+    average_chunk_length: float | None = None
 
 class RAGResponse(BaseModel):
     """
@@ -156,6 +181,8 @@ class RAGResponse(BaseModel):
     sources: list[RAGSource] = Field(
         default_factory=list
     )
+
+    metrics: RAGMetrics | None = None
 
     status: str = "completed"
 
@@ -185,7 +212,7 @@ class RAGStreamDoneData(BaseModel):
     conversation_id: str
     retrieval_mode: RetrievalMode
     status: str = "completed"
-
+    metrics: RAGMetrics | None = None
 
 class RAGStreamErrorData(BaseModel):
     conversation_id: str
@@ -213,3 +240,24 @@ class RAGStreamEvent(BaseModel):
 RagChatRequest = RAGRequest
 RagChatResponse = RAGResponse
 RagSource = RAGSource
+
+class RAGEvaluationResponse(BaseModel):
+    """
+    Response returned by the RAG evaluation endpoint.
+    """
+
+    question: str
+
+    retrieval_query: str
+
+    retrieval_mode: RetrievalMode
+
+    search_results: list[RAGSearchResult] = Field(
+        default_factory=list
+    )
+
+    sources: list[RAGSource] = Field(
+        default_factory=list
+    )
+
+    metrics: RAGMetrics

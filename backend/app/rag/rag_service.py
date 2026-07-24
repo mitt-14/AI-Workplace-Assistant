@@ -1,6 +1,7 @@
 from __future__ import annotations
-import logging
 
+import logging
+import time
 from collections.abc import Iterator
 from dataclasses import dataclass
 from typing import Any, Literal
@@ -49,6 +50,7 @@ class PreparedRAGRequest:
     search_results: list[dict[str, Any]]
     sources: list[dict[str, Any]]
     prompt: str | None
+    retrieval_time_ms: float
 
 
 def extract_model_answer(response: Any) -> str:
@@ -213,6 +215,94 @@ def build_sources(
         )
 
     return sources
+
+
+def calculate_retrieval_metrics(
+    search_results: list[dict[str, Any]],
+) -> dict[str, Any]:
+    """Calculate retrieval quality metrics for retrieved chunks."""
+
+    if not search_results:
+        return {
+            "retrieved_chunk_count": 0,
+            "documents_retrieved": 0,
+            "average_relevance_score": None,
+            "highest_relevance_score": None,
+            "lowest_relevance_score": None,
+            "average_keyword_score": None,
+            "average_hybrid_score": None,
+            "average_chunk_length": None,
+        }
+
+    relevance_scores = [
+        score
+        for result in search_results
+        if (score := optional_float(
+            result.get("relevance_score")
+        )) is not None
+    ]
+
+    keyword_scores = [
+        score
+        for result in search_results
+        if (score := optional_float(
+            result.get("keyword_score")
+        )) is not None
+    ]
+
+    hybrid_scores = [
+        score
+        for result in search_results
+        if (score := optional_float(
+            result.get("hybrid_score")
+        )) is not None
+    ]
+
+    chunk_lengths = [
+        len(str(result.get("text", "")))
+        for result in search_results
+    ]
+
+    document_ids = {
+        str(result["document_id"])
+        for result in search_results
+        if result.get("document_id")
+    }
+
+    return {
+        "retrieved_chunk_count": len(search_results),
+        "documents_retrieved": len(document_ids),
+        "average_relevance_score": (
+            round(sum(relevance_scores) / len(relevance_scores), 4)
+            if relevance_scores
+            else None
+        ),
+        "highest_relevance_score": (
+            round(max(relevance_scores), 4)
+            if relevance_scores
+            else None
+        ),
+        "lowest_relevance_score": (
+            round(min(relevance_scores), 4)
+            if relevance_scores
+            else None
+        ),
+        "average_keyword_score": (
+            round(sum(keyword_scores) / len(keyword_scores), 4)
+            if keyword_scores
+            else None
+        ),
+        "average_hybrid_score": (
+            round(sum(hybrid_scores) / len(hybrid_scores), 4)
+            if hybrid_scores
+            else None
+        ),
+        "average_chunk_length": (
+            round(sum(chunk_lengths) / len(chunk_lengths), 2)
+            if chunk_lengths
+            else None
+        ),
+    }
 
 
 def retrieve_context(
@@ -409,7 +499,7 @@ def prepare_rag_request(
     logger.info(
         "Preparing RAG request: provider=%s top_k=%s "
         "retrieval_mode=%s document_id=%s "
-        "conversation_id=%s",
+        "document_ids=%s, conversation_id=%s",
         provider,
         top_k,
         retrieval_mode,
@@ -418,6 +508,8 @@ def prepare_rag_request(
         resolved_conversation_id,
     )
 
+    retrieval_started = time.perf_counter()
+
     search_results = retrieve_context(
         query=retrieval_query,
         top_k=top_k,
@@ -425,6 +517,11 @@ def prepare_rag_request(
         document_ids=document_ids,
         retrieval_mode=retrieval_mode,
     )
+
+    retrieval_time_ms = (
+        time.perf_counter()
+        - retrieval_started
+    ) * 1000
 
     sources = build_sources(
         search_results
@@ -457,7 +554,101 @@ def prepare_rag_request(
         search_results=search_results,
         sources=sources,
         prompt=prompt,
+        retrieval_time_ms=retrieval_time_ms,
     )
+
+
+def evaluate_retrieval(
+    *,
+    question: str,
+    provider: str,
+    top_k: int,
+    document_id: str | None = None,
+    document_ids: list[str] | None = None,
+    conversation_id: str | None = None,
+    retrieval_mode: RetrievalMode = "hybrid",
+) -> dict[str, Any]:
+    """Evaluate retrieval without generating an assistant answer."""
+
+    cleaned_question = question.strip()
+
+    if not cleaned_question:
+        raise SemanticSearchError(
+            "The RAG question cannot be empty."
+        )
+
+    if top_k <= 0:
+        raise ValueError(
+            "top_k must be greater than zero."
+        )
+
+    if retrieval_mode not in {
+        "semantic",
+        "keyword",
+        "hybrid",
+    }:
+        raise ValueError(
+            f"Unsupported retrieval mode: {retrieval_mode}"
+        )
+
+    conversation_history: list[dict[str, Any]] = []
+
+    if conversation_id is not None:
+        if get_conversation(conversation_id) is None:
+            raise ConversationNotFoundError(
+                conversation_id
+            )
+
+        conversation_history = get_messages(
+            conversation_id,
+            limit=settings.maximum_conversation_messages,
+        )
+
+    retrieval_query = rewrite_search_query(
+        question=cleaned_question,
+        conversation_history=conversation_history,
+        provider=provider,
+    )
+
+    retrieval_started = time.perf_counter()
+
+    search_results = retrieve_context(
+        query=retrieval_query,
+        top_k=top_k,
+        document_id=document_id,
+        document_ids=document_ids,
+        retrieval_mode=retrieval_mode,
+    )
+
+    retrieval_time_ms = (
+        time.perf_counter()
+        - retrieval_started
+    ) * 1000
+
+    sources = build_sources(search_results)
+    retrieval_metrics = calculate_retrieval_metrics(
+        search_results
+    )
+
+    return {
+        "question": cleaned_question,
+        "retrieval_query": retrieval_query,
+        "retrieval_mode": retrieval_mode,
+        "search_results": search_results,
+        "sources": sources,
+        "metrics": {
+            **retrieval_metrics,
+            "retrieval_time_ms": round(
+                retrieval_time_ms,
+                2,
+            ),
+            "generation_time_ms": 0.0,
+            "total_time_ms": round(
+                retrieval_time_ms,
+                2,
+            ),
+        },
+    }
 
 
 def answer_with_documents(
@@ -482,6 +673,10 @@ def answer_with_documents(
         document_ids=document_ids,
         conversation_id=conversation_id,
         retrieval_mode=retrieval_mode,
+    )
+
+    retrieval_metrics = calculate_retrieval_metrics(
+        prepared.search_results
     )
 
     if not prepared.search_results:
@@ -511,6 +706,18 @@ def answer_with_documents(
             "answer": answer,
             "search_results": [],
             "sources": [],
+            "metrics": {
+                **retrieval_metrics,
+                "retrieval_time_ms": round(
+                    prepared.retrieval_time_ms,
+                    2,
+                ),
+                "generation_time_ms": 0.0,
+                "total_time_ms": round(
+                    prepared.retrieval_time_ms,
+                    2,
+                ),
+            },
         }
 
     if prepared.prompt is None:
@@ -519,6 +726,9 @@ def answer_with_documents(
         )
 
     try:
+
+        generation_started = time.perf_counter()
+
         model = get_model(
             prepared.provider
         )
@@ -529,6 +739,16 @@ def answer_with_documents(
 
         answer = extract_model_answer(
             model_response
+        )
+
+        generation_time_ms = (
+            time.perf_counter()
+            - generation_started
+        ) * 1000
+
+        total_time_ms = (
+            prepared.retrieval_time_ms
+            + generation_time_ms
         )
 
     except Exception:
@@ -564,6 +784,21 @@ def answer_with_documents(
     )
 
     return {
+        "metrics": {
+            **retrieval_metrics,
+            "retrieval_time_ms": round(
+                prepared.retrieval_time_ms,
+                2,
+            ),
+            "generation_time_ms": round(
+                generation_time_ms,
+                2,
+            ),
+            "total_time_ms": round(
+                total_time_ms,
+                2,
+            ),
+        },
         "conversation_id": prepared.conversation_id,
         "retrieval_query": prepared.retrieval_query,
         "retrieval_mode": prepared.retrieval_mode,
@@ -598,6 +833,10 @@ def stream_answer_with_documents(
         document_ids=document_ids,
         conversation_id=conversation_id,
         retrieval_mode=retrieval_mode,
+    )
+
+    retrieval_metrics = calculate_retrieval_metrics(
+        prepared.search_results
     )
 
     yield {
@@ -646,6 +885,18 @@ def stream_answer_with_documents(
                 "conversation_id": prepared.conversation_id,
                 "retrieval_mode": prepared.retrieval_mode,
                 "status": "completed",
+                "metrics": {
+                    **retrieval_metrics,
+                    "retrieval_time_ms": round(
+                        prepared.retrieval_time_ms,
+                        2,
+                    ),
+                    "generation_time_ms": 0.0,
+                    "total_time_ms": round(
+                        prepared.retrieval_time_ms,
+                        2,
+                    ),
+                },
             },
         }
 
@@ -683,6 +934,7 @@ def stream_answer_with_documents(
     }
 
     answer_chunks: list[str] = []
+    generation_started = time.perf_counter()
 
     try:
         model = get_model(
@@ -736,6 +988,16 @@ def stream_answer_with_documents(
         }
 
         return
+
+    generation_time_ms = (
+        time.perf_counter()
+        - generation_started
+    ) * 1000
+
+    total_time_ms = (
+        prepared.retrieval_time_ms
+        + generation_time_ms
+    )
 
     answer = "".join(
         answer_chunks
