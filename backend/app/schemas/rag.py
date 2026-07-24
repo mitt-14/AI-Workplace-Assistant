@@ -51,6 +51,16 @@ class RAGRequest(BaseModel):
         ),
     )
 
+    document_ids: list[str] | None = Field(
+        default=None,
+        min_length=1,
+        max_length=20,
+        description=(
+            "Optional document IDs used to restrict retrieval "
+            "to multiple selected documents."
+        ),
+    )
+
     conversation_id: str | None = Field(
         default=None,
         description=(

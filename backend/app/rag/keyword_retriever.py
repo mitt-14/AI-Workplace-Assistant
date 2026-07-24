@@ -40,6 +40,7 @@ def keyword_search(
     query: str,
     top_k: int = 5,
     document_id: str | None = None,
+    document_ids: list[str] | None = None,
 ) -> list[dict[str, Any]]:
     """
     Perform BM25 keyword search over indexed document chunks.
@@ -47,6 +48,7 @@ def keyword_search(
 
     stored = get_all_document_chunks(
         document_id=document_id,
+        document_ids=document_ids,
     )
 
     documents = stored.get("documents") or []

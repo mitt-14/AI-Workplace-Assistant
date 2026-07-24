@@ -80,6 +80,7 @@ def hybrid_search(
     query: str,
     top_k: int = 5,
     document_id: str | None = None,
+    document_ids: list[str] | None = None,
     semantic_weight: float = 0.7,
     keyword_weight: float = 0.3,
 ) -> list[dict[str, Any]]:
@@ -121,12 +122,14 @@ def hybrid_search(
         query=query,
         top_k=candidate_count,
         document_id=document_id,
+        document_ids=document_ids,
     )
 
     keyword_results = keyword_search(
         query=query,
         top_k=candidate_count,
         document_id=document_id,
+        document_ids=document_ids,
     )
 
     normalize_keyword_scores(keyword_results)

@@ -64,6 +64,7 @@ async def rag_chat(
         provider=request.provider,
         top_k=request.top_k,
         document_id=request.document_id,
+        document_ids=request.document_ids,
         conversation_id=request.conversation_id,
         retrieval_mode=request.retrieval_mode,
     )
@@ -122,8 +123,9 @@ async def stream_rag_chat(
         events = stream_answer_with_documents(
             question=request.question,
             provider=request.provider,
-            top_k=request.top_k,
+            top_k=top_k,
             document_id=request.document_id,
+            document_ids=request.document_ids,
             conversation_id=request.conversation_id,
             retrieval_mode=request.retrieval_mode,
         )

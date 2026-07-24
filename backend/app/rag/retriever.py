@@ -30,6 +30,7 @@ def semantic_search(
     query: str,
     top_k: int,
     document_id: str | None = None,
+    document_ids: list[str] | None = None,
 ) -> list[dict[str, Any]]:
     """
     Embed a query and retrieve the closest document chunks.
@@ -49,12 +50,15 @@ def semantic_search(
             query_embedding=query_embedding,
             top_k=top_k,
             document_id=document_id,
+            document_ids=document_ids,
         )
     except Exception:
         logger.exception(
-            "Semantic search failed: query=%s document_id=%s",
+            "Semantic search failed: query=%s "
+            "document_id=%s document_ids=%s",
             cleaned_query,
             document_id,
+            document_ids,
         )
         raise
 
@@ -140,10 +144,11 @@ def semantic_search(
 
     logger.info(
         "Semantic search completed: results=%s model=%s "
-        "document_id=%s",
+        "document_id=%s document_ids=%s",
         len(search_results),
         settings.embedding_model,
         document_id,
+        document_ids,
     )
 
     return search_results

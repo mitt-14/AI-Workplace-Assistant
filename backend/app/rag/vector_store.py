@@ -139,12 +139,56 @@ def delete_document_chunks(document_id: str) -> None:
             "Existing document chunks could not be deleted."
         ) from exc
     
+def build_document_filter(
+    *,
+    document_id: str | None = None,
+    document_ids: list[str] | None = None,
+) -> dict[str, Any] | None:
+    """
+    Build a Chroma metadata filter for one or multiple documents.
+    """
+
+    normalized_ids: list[str] = []
+
+    if document_id:
+        normalized_ids.append(
+            document_id.strip()
+        )
+
+    if document_ids:
+        normalized_ids.extend(
+            item.strip()
+            for item in document_ids
+            if isinstance(item, str)
+            and item.strip()
+        )
+
+    # Preserve order while removing duplicates.
+    normalized_ids = list(
+        dict.fromkeys(normalized_ids)
+    )
+
+    if not normalized_ids:
+        return None
+
+    if len(normalized_ids) == 1:
+        return {
+            "document_id": normalized_ids[0]
+        }
+
+    return {
+        "document_id": {
+            "$in": normalized_ids
+        }
+    }
+
 
 def search_document_chunks(
     *,
     query_embedding: list[float],
     top_k: int,
     document_id: str | None = None,
+    document_ids: list[str] | None = None,
 ) -> dict[str, Any]:
     """
     Search ChromaDB for chunks nearest to a query embedding.
@@ -176,18 +220,23 @@ def search_document_chunks(
             ],
         }
 
-        if document_id:
-            query_arguments["where"] = {
-                "document_id": document_id,
-            }
+        document_filter = build_document_filter(
+            document_id=document_id,
+            document_ids=document_ids,
+        )
+
+        if document_filter is not None:
+            query_arguments["where"] = document_filter
 
         results = collection.query(**query_arguments)
 
     except Exception as exc:
         logger.exception(
-            "Vector search failed: top_k=%s document_id=%s",
+            "Vector search failed: top_k=%s"
+            "document_id=%s document_ids=%s",
             top_k,
             document_id,
+            document_ids,
         )
 
         raise VectorStoreError(
@@ -198,6 +247,7 @@ def search_document_chunks(
 
 def get_all_document_chunks(
     document_id: str | None = None,
+    document_ids: list[str] | None = None,
 ) -> dict:
     """
     Retrieve every indexed chunk for BM25 indexing.
@@ -212,9 +262,12 @@ def get_all_document_chunks(
         ]
     }
 
-    if document_id is not None:
-        kwargs["where"] = {
-            "document_id": document_id
-        }
+    document_filter = build_document_filter(
+        document_id=document_id,
+        document_ids=document_ids,
+    )
+    
+    if document_filter is not None:
+        kwargs["where"] = document_filter
 
     return collection.get(**kwargs)

@@ -1,0 +1,18 @@
+{
+  "document_id": "64a0fef9-1b20-4d66-b71d-7f3dacbbd2cd",
+  "original_filename": "Enterprise_AI_Solutions_Employee_Handbook.pdf",
+  "stored_filename": "64a0fef9-1b20-4d66-b71d-7f3dacbbd2cd_Enterprise_AI_Solutions_Employee_Handbook.pdf",
+  "content_type": "application/pdf",
+  "size_bytes": 41476,
+  "uploaded_at": "2026-07-24T12:45:44.564044+00:00",
+  "indexing": {
+    "status": "indexed",
+    "page_count": 26,
+    "chunk_count": 131,
+    "stored_chunk_count": 131,
+    "embedding_model": "embeddinggemma",
+    "embedding_dimensions": 768,
+    "collection_name": "workplace_documents",
+    "indexed_at": "2026-07-24T12:52:03.022821+00:00"
+  }
+}

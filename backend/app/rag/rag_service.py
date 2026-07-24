@@ -219,7 +219,8 @@ def retrieve_context(
     *,
     query: str,
     top_k: int,
-    document_id: str | None,
+    document_id: str | None = None,
+    document_ids: list[str] | None = None,
     retrieval_mode: RetrievalMode,
 ) -> list[dict[str, Any]]:
     """
@@ -236,6 +237,7 @@ def retrieve_context(
             query=query,
             top_k=candidate_count,
             document_id=document_id,
+            document_ids=document_ids,
         )
 
         relevant_results = [
@@ -263,6 +265,7 @@ def retrieve_context(
             query=query,
             top_k=top_k,
             document_id=document_id,
+            document_ids=document_ids,
         )
 
         for result in search_results:
@@ -278,6 +281,7 @@ def retrieve_context(
             query=query,
             top_k=top_k,
             document_id=document_id,
+            document_ids=document_ids,
             semantic_weight=settings.hybrid_semantic_weight,
             keyword_weight=settings.hybrid_keyword_weight,
         )
@@ -339,6 +343,7 @@ def prepare_rag_request(
     provider: str,
     top_k: int,
     document_id: str | None = None,
+    document_ids: list[str] | None = None,
     conversation_id: str | None = None,
     retrieval_mode: RetrievalMode = "hybrid",
 ) -> PreparedRAGRequest:
@@ -409,6 +414,7 @@ def prepare_rag_request(
         top_k,
         retrieval_mode,
         document_id,
+        document_ids,
         resolved_conversation_id,
     )
 
@@ -416,6 +422,7 @@ def prepare_rag_request(
         query=retrieval_query,
         top_k=top_k,
         document_id=document_id,
+        document_ids=document_ids,
         retrieval_mode=retrieval_mode,
     )
 
@@ -459,6 +466,7 @@ def answer_with_documents(
     provider: str,
     top_k: int,
     document_id: str | None = None,
+    document_ids: list[str] | None = None,
     conversation_id: str | None = None,
     retrieval_mode: RetrievalMode = "hybrid",
 ) -> dict[str, Any]:
@@ -471,6 +479,7 @@ def answer_with_documents(
         provider=provider,
         top_k=top_k,
         document_id=document_id,
+        document_ids=document_ids,
         conversation_id=conversation_id,
         retrieval_mode=retrieval_mode,
     )
@@ -570,6 +579,7 @@ def stream_answer_with_documents(
     provider: str,
     top_k: int,
     document_id: str | None = None,
+    document_ids: list[str] | None = None,
     conversation_id: str | None = None,
     retrieval_mode: RetrievalMode = "hybrid",
 ) -> Iterator[dict[str, Any]]:
@@ -585,6 +595,7 @@ def stream_answer_with_documents(
         provider=provider,
         top_k=top_k,
         document_id=document_id,
+        document_ids=document_ids,
         conversation_id=conversation_id,
         retrieval_mode=retrieval_mode,
     )
