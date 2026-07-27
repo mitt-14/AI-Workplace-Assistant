@@ -6,9 +6,11 @@ from fastapi.exceptions import RequestValidationError
 from fastapi.responses import JSONResponse
 
 from app.api.chat import router as chat_router
+from app.api.document_analysis import router as document_analysis_router
 from app.api.documents import router as documents_router
-from app.api.search import router as search_router
+from app.api.email_analysis import router as email_analysis_router
 from app.api.rag import router as rag_router
+from app.api.search import router as search_router
 from app.core.config import settings
 from app.core.exceptions import ApplicationError
 from app.core.logging_config import configure_logging
@@ -88,10 +90,7 @@ async def unexpected_error_handler(
     request: Request,
     exc: Exception,
 ) -> JSONResponse:
-    logger.exception(
-        "Unexpected server error: path=%s",
-        request.url.path,
-    )
+    logger.exception("Unexpected server error: path=%s", request.url.path)
 
     return JSONResponse(
         status_code=500,
@@ -117,22 +116,9 @@ async def health_check() -> dict[str, str]:
     }
 
 
-app.include_router(
-    chat_router,
-    prefix="/api",
-)
-
-app.include_router(
-    documents_router,
-    prefix="/api",
-)
-
-app.include_router(
-    search_router,
-    prefix="/api",
-)
-
-app.include_router(
-    rag_router,
-    prefix="/api",
-)
+app.include_router(chat_router, prefix="/api")
+app.include_router(documents_router, prefix="/api")
+app.include_router(search_router, prefix="/api")
+app.include_router(rag_router, prefix="/api")
+app.include_router(document_analysis_router, prefix="/api")
+app.include_router(email_analysis_router, prefix="/api")

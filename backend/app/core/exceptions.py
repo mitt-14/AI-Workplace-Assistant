@@ -140,3 +140,70 @@ class SemanticSearchError(ApplicationError):
             status_code=500,
             error_code="SEMANTIC_SEARCH_ERROR",
         )
+
+class ConversationNotFoundError(ApplicationError):
+    def __init__(
+        self,
+        conversation_id: str,
+    ) -> None:
+        super().__init__(
+            message=(
+                f"Conversation '{conversation_id}' "
+                "was not found."
+            ),
+            error_code="CONVERSATION_NOT_FOUND",
+            status_code=404,
+        )
+
+class DocumentAnalysisError(ApplicationError):
+    def __init__(
+        self,
+        message: str = "The document could not be analyzed.",
+    ) -> None:
+        super().__init__(
+            message=message,
+            status_code=500,
+            error_code="DOCUMENT_ANALYSIS_ERROR",
+        )
+
+
+class DocumentAnalysisParseError(ApplicationError):
+    def __init__(self) -> None:
+        super().__init__(
+            message=(
+                "The language model returned an invalid document "
+                "analysis response."
+            ),
+            status_code=502,
+            error_code="DOCUMENT_ANALYSIS_PARSE_ERROR",
+        )
+
+
+class DocumentAnalysisNotFoundError(ApplicationError):
+    def __init__(self, analysis_id: str) -> None:
+        super().__init__(
+            message=f"Document analysis not found: {analysis_id}",
+            status_code=404,
+            error_code="DOCUMENT_ANALYSIS_NOT_FOUND",
+        )
+
+
+class EmailAnalysisError(ApplicationError):
+    def __init__(
+        self,
+        message: str = "The email could not be analyzed.",
+    ) -> None:
+        super().__init__(
+            message=message,
+            status_code=500,
+            error_code="EMAIL_ANALYSIS_ERROR",
+        )
+
+
+class EmailAnalysisParseError(ApplicationError):
+    def __init__(self) -> None:
+        super().__init__(
+            message="The language model returned an invalid email analysis response.",
+            status_code=502,
+            error_code="EMAIL_ANALYSIS_PARSE_ERROR",
+        )
