@@ -5,7 +5,7 @@ from pydantic_settings import BaseSettings, SettingsConfigDict
 
 class Settings(BaseSettings):
     app_name: str = "AI Workplace Assistant"
-    app_version: str = "0.9.0"
+    app_version: str = "0.10.0"
     environment: str = "development"
     log_level: str = "INFO"
 
@@ -15,7 +15,6 @@ class Settings(BaseSettings):
     ollama_base_url: str = "http://localhost:11434"
 
     embedding_model: str = "embeddinggemma"
-    ollama_base_url: str = "http://localhost:11434"
 
     chroma_directory: str = "chroma_db"
     chroma_collection_name: str = "workplace_documents"
@@ -38,6 +37,9 @@ class Settings(BaseSettings):
 
     # Phase 9: AI Email Assistant
     email_analysis_batch_concurrency: int = 2
+
+    # Phase 10: AI Meeting Assistant
+    meeting_analysis_max_characters: int = 30000
 
     conversation_database_path: str = "data/conversations.db"
     maximum_conversation_messages: int = 10

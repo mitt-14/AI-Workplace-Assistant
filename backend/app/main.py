@@ -9,6 +9,7 @@ from app.api.chat import router as chat_router
 from app.api.document_analysis import router as document_analysis_router
 from app.api.documents import router as documents_router
 from app.api.email_analysis import router as email_analysis_router
+from app.api.meeting_analysis import router as meeting_analysis_router
 from app.api.rag import router as rag_router
 from app.api.search import router as search_router
 from app.core.config import settings
@@ -31,7 +32,10 @@ async def lifespan(app: FastAPI):
 
     yield
 
-    logger.info("Shutting down %s", settings.app_name)
+    logger.info(
+        "Shutting down %s",
+        settings.app_name,
+    )
 
 
 app = FastAPI(
@@ -78,7 +82,9 @@ async def validation_error_handler(
         status_code=422,
         content={
             "error": "VALIDATION_ERROR",
-            "message": "The submitted request contains invalid data.",
+            "message": (
+                "The submitted request contains invalid data."
+            ),
             "path": request.url.path,
             "details": exc.errors(),
         },
@@ -90,13 +96,18 @@ async def unexpected_error_handler(
     request: Request,
     exc: Exception,
 ) -> JSONResponse:
-    logger.exception("Unexpected server error: path=%s", request.url.path)
+    logger.exception(
+        "Unexpected server error: path=%s",
+        request.url.path,
+    )
 
     return JSONResponse(
         status_code=500,
         content={
             "error": "INTERNAL_SERVER_ERROR",
-            "message": "An unexpected server error occurred.",
+            "message": (
+                "An unexpected server error occurred."
+            ),
             "path": request.url.path,
         },
     )
@@ -116,9 +127,31 @@ async def health_check() -> dict[str, str]:
     }
 
 
-app.include_router(chat_router, prefix="/api")
-app.include_router(documents_router, prefix="/api")
-app.include_router(search_router, prefix="/api")
-app.include_router(rag_router, prefix="/api")
-app.include_router(document_analysis_router, prefix="/api")
-app.include_router(email_analysis_router, prefix="/api")
+app.include_router(
+    chat_router,
+    prefix="/api",
+)
+app.include_router(
+    documents_router,
+    prefix="/api",
+)
+app.include_router(
+    search_router,
+    prefix="/api",
+)
+app.include_router(
+    rag_router,
+    prefix="/api",
+)
+app.include_router(
+    document_analysis_router,
+    prefix="/api",
+)
+app.include_router(
+    email_analysis_router,
+    prefix="/api",
+)
+app.include_router(
+    meeting_analysis_router,
+    prefix="/api",
+)

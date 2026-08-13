@@ -207,3 +207,27 @@ class EmailAnalysisParseError(ApplicationError):
             status_code=502,
             error_code="EMAIL_ANALYSIS_PARSE_ERROR",
         )
+
+
+class MeetingAnalysisError(ApplicationError):
+    def __init__(
+        self,
+        message: str = "The meeting could not be analyzed.",
+    ) -> None:
+        super().__init__(
+            message=message,
+            status_code=500,
+            error_code="MEETING_ANALYSIS_ERROR",
+        )
+
+
+class MeetingAnalysisParseError(ApplicationError):
+    def __init__(self) -> None:
+        super().__init__(
+            message=(
+                "The language model returned an invalid "
+                "meeting analysis response."
+            ),
+            status_code=502,
+            error_code="MEETING_ANALYSIS_PARSE_ERROR",
+        )
