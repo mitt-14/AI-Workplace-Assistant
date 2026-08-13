@@ -240,3 +240,27 @@ class TaskNotFoundError(ApplicationError):
 class NotificationNotFoundError(ApplicationError):
     def __init__(self, notification_id: str) -> None:
         super().__init__(message=f"Notification not found: {notification_id}", status_code=404, error_code="NOTIFICATION_NOT_FOUND")
+
+
+class AgentExecutionError(ApplicationError):
+    def __init__(
+        self,
+        message: str = "The AI agent could not complete the request.",
+    ) -> None:
+        super().__init__(
+            message=message,
+            status_code=500,
+            error_code="AGENT_EXECUTION_ERROR",
+        )
+
+
+class AgentPlanError(ApplicationError):
+    def __init__(
+        self,
+        message: str = "The AI agent could not create a valid plan.",
+    ) -> None:
+        super().__init__(
+            message=message,
+            status_code=502,
+            error_code="AGENT_PLAN_ERROR",
+        )

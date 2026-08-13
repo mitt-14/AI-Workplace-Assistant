@@ -5,7 +5,7 @@ from pydantic_settings import BaseSettings, SettingsConfigDict
 
 class Settings(BaseSettings):
     app_name: str = "AI Workplace Assistant"
-    app_version: str = "0.11.0"
+    app_version: str = "0.12.0"
     environment: str = "development"
     log_level: str = "INFO"
 
@@ -43,6 +43,10 @@ class Settings(BaseSettings):
 
     # Phase 11: Local Workflow Automation
     workflow_database_path: str = "data/workflows.db"
+
+    # Phase 12: AI Agents
+    agent_default_max_steps: int = 5
+    agent_stop_on_tool_error: bool = False
 
     conversation_database_path: str = "data/conversations.db"
     maximum_conversation_messages: int = 10
