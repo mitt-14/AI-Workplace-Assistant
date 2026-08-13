@@ -5,7 +5,7 @@ from pydantic_settings import BaseSettings, SettingsConfigDict
 
 class Settings(BaseSettings):
     app_name: str = "AI Workplace Assistant"
-    app_version: str = "0.12.0"
+    app_version: str = "0.13.0"
     environment: str = "development"
     log_level: str = "INFO"
 
