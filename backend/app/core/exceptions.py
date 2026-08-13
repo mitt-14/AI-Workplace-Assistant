@@ -264,3 +264,25 @@ class AgentPlanError(ApplicationError):
             status_code=502,
             error_code="AGENT_PLAN_ERROR",
         )
+
+
+
+class AuthenticationError(ApplicationError):
+    def __init__(
+        self,
+        message: str = "Authentication is required.",
+    ) -> None:
+        super().__init__(
+            message=message,
+            status_code=401,
+            error_code="AUTHENTICATION_ERROR",
+        )
+
+
+class EmailAlreadyRegisteredError(ApplicationError):
+    def __init__(self) -> None:
+        super().__init__(
+            message="An account with this email already exists.",
+            status_code=409,
+            error_code="EMAIL_ALREADY_REGISTERED",
+        )

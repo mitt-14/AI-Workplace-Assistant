@@ -5,7 +5,7 @@ from pydantic_settings import BaseSettings, SettingsConfigDict
 
 class Settings(BaseSettings):
     app_name: str = "AI Workplace Assistant"
-    app_version: str = "0.13.0"
+    app_version: str = "0.14.0"
     environment: str = "development"
     log_level: str = "INFO"
 
@@ -43,6 +43,12 @@ class Settings(BaseSettings):
 
     # Phase 11: Local Workflow Automation
     workflow_database_path: str = "data/workflows.db"
+
+    # Phase 14: Authentication
+    user_database_path: str = "data/users.db"
+    jwt_secret_key: str = "CHANGE_ME_IN_BACKEND_ENV"
+    jwt_algorithm: str = "HS256"
+    jwt_access_token_expire_minutes: int = 60
 
     # Phase 12: AI Agents
     agent_default_max_steps: int = 5

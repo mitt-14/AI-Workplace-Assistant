@@ -13,3 +13,6 @@ pypdf
 pytest
 httpx
 python-multipart
+bcrypt
+PyJWT
+email-validator

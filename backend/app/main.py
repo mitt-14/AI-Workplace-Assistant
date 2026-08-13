@@ -7,6 +7,7 @@ from fastapi.responses import JSONResponse
 from fastapi.middleware.cors import CORSMiddleware
 
 from app.api.agents import router as agents_router
+from app.api.auth import router as auth_router
 from app.api.chat import router as chat_router
 from app.api.document_analysis import router as document_analysis_router
 from app.api.documents import router as documents_router
@@ -21,6 +22,7 @@ from app.core.config import settings
 from app.core.exceptions import ApplicationError
 from app.core.logging_config import configure_logging
 from app.core.workflow_store import initialize_workflow_database
+from app.core.user_store import initialize_user_database
 
 configure_logging()
 
@@ -30,6 +32,7 @@ logger = logging.getLogger(__name__)
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     initialize_workflow_database()
+    initialize_user_database()
 
     logger.info(
         "Starting %s version %s in %s mode",
@@ -146,6 +149,7 @@ async def health_check() -> dict[str, str]:
     }
 
 
+app.include_router(auth_router, prefix="/api")
 app.include_router(chat_router, prefix="/api")
 app.include_router(documents_router, prefix="/api")
 app.include_router(search_router, prefix="/api")
