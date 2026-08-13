@@ -231,3 +231,12 @@ class MeetingAnalysisParseError(ApplicationError):
             status_code=502,
             error_code="MEETING_ANALYSIS_PARSE_ERROR",
         )
+
+
+class TaskNotFoundError(ApplicationError):
+    def __init__(self, task_id: str) -> None:
+        super().__init__(message=f"Task not found: {task_id}", status_code=404, error_code="TASK_NOT_FOUND")
+
+class NotificationNotFoundError(ApplicationError):
+    def __init__(self, notification_id: str) -> None:
+        super().__init__(message=f"Notification not found: {notification_id}", status_code=404, error_code="NOTIFICATION_NOT_FOUND")

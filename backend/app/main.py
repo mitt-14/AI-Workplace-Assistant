@@ -12,6 +12,10 @@ from app.api.email_analysis import router as email_analysis_router
 from app.api.meeting_analysis import router as meeting_analysis_router
 from app.api.rag import router as rag_router
 from app.api.search import router as search_router
+from app.api.workflows import router as workflows_router
+from app.api.tasks import router as tasks_router
+from app.api.notifications import router as notifications_router
+from app.core.workflow_store import initialize_workflow_database
 from app.core.config import settings
 from app.core.exceptions import ApplicationError
 from app.core.logging_config import configure_logging
@@ -23,6 +27,8 @@ logger = logging.getLogger(__name__)
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
+    initialize_workflow_database()
+
     logger.info(
         "Starting %s version %s in %s mode",
         settings.app_name,
@@ -155,3 +161,7 @@ app.include_router(
     meeting_analysis_router,
     prefix="/api",
 )
+
+app.include_router(workflows_router, prefix="/api")
+app.include_router(tasks_router, prefix="/api")
+app.include_router(notifications_router, prefix="/api")
