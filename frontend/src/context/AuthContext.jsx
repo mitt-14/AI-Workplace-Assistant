@@ -6,18 +6,32 @@ import {
   useState,
 } from "react";
 
-import { api, authStorage } from "../lib/api";
+import {
+  api,
+  authStorage,
+} from "../lib/api";
 
-const AuthContext = createContext(null);
+const AuthContext = createContext(
+  null
+);
 
-export function AuthProvider({ children }) {
-  const [user, setUser] = useState(null);
+export function AuthProvider({
+  children,
+}) {
+  const [user, setUser] = useState(
+    null
+  );
+
   const [loading, setLoading] = useState(
-    Boolean(authStorage.getToken()),
+    Boolean(
+      authStorage.getToken()
+    )
   );
 
   useEffect(() => {
-    const token = authStorage.getToken();
+    const token = (
+      authStorage.getToken()
+    );
 
     if (!token) {
       setLoading(false);
@@ -31,30 +45,81 @@ export function AuthProvider({ children }) {
         authStorage.clearToken();
         setUser(null);
       })
-      .finally(() => setLoading(false));
+      .finally(
+        () => setLoading(false)
+      );
   }, []);
 
-  async function login(email, password) {
-    const result = await api.post("/auth/login", {
-      email,
-      password,
-    });
+  async function login(
+    email,
+    password,
+  ) {
+    const result = await api.post(
+      "/auth/login",
+      {
+        email,
+        password,
+      }
+    );
 
-    authStorage.setToken(result.access_token);
-    setUser(result.user);
+    authStorage.setToken(
+      result.access_token
+    );
+
+    setUser(
+      result.user
+    );
+
     return result.user;
   }
 
-  async function register(name, email, password) {
-    const result = await api.post("/auth/register", {
-      name,
-      email,
-      password,
-    });
+  async function register(
+    name,
+    email,
+    password,
+  ) {
+    const result = await api.post(
+      "/auth/register",
+      {
+        name,
+        email,
+        password,
+      }
+    );
 
-    authStorage.setToken(result.access_token);
-    setUser(result.user);
+    authStorage.setToken(
+      result.access_token
+    );
+
+    setUser(
+      result.user
+    );
+
     return result.user;
+  }
+
+  async function forgotPassword(
+    email,
+  ) {
+    return api.post(
+      "/auth/forgot-password",
+      {
+        email,
+      }
+    );
+  }
+
+  async function resetPassword(
+    token,
+    newPassword,
+  ) {
+    return api.post(
+      "/auth/reset-password",
+      {
+        token,
+        new_password: newPassword,
+      }
+    );
   }
 
   function logout() {
@@ -69,24 +134,33 @@ export function AuthProvider({ children }) {
       authenticated: Boolean(user),
       login,
       register,
+      forgotPassword,
+      resetPassword,
       logout,
     }),
-    [user, loading],
+    [
+      user,
+      loading,
+    ],
   );
 
   return (
-    <AuthContext.Provider value={value}>
+    <AuthContext.Provider
+      value={value}
+    >
       {children}
     </AuthContext.Provider>
   );
 }
 
 export function useAuth() {
-  const context = useContext(AuthContext);
+  const context = useContext(
+    AuthContext
+  );
 
   if (!context) {
     throw new Error(
-      "useAuth must be used inside AuthProvider.",
+      "useAuth must be used inside AuthProvider."
     );
   }
 

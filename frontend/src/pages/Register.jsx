@@ -7,29 +7,70 @@ import {
 } from "lucide-react";
 
 import AmbientBackground from "../components/AmbientBackground";
+import PasswordStrength, {
+  getPasswordChecks,
+} from "../components/PasswordStrength";
 import { useAuth } from "../context/AuthContext";
 
-export default function Register({ onLogin }) {
+export default function Register({
+  onLogin,
+}) {
   const { register } = useAuth();
+
   const [form, setForm] = useState({
     name: "",
     email: "",
     password: "",
     confirm: "",
   });
-  const [error, setError] = useState("");
-  const [loading, setLoading] = useState(false);
 
-  function update(key, value) {
-    setForm((old) => ({ ...old, [key]: value }));
+  const [error, setError] = useState("");
+  const [loading, setLoading] = useState(
+    false
+  );
+
+  function update(
+    key,
+    value,
+  ) {
+    setForm(
+      (old) => ({
+        ...old,
+        [key]: value,
+      })
+    );
   }
 
-  async function submit(event) {
+  async function submit(
+    event,
+  ) {
     event.preventDefault();
     setError("");
 
-    if (form.password !== form.confirm) {
-      setError("Passwords do not match.");
+    if (
+      form.password
+      !== form.confirm
+    ) {
+      setError(
+        "Passwords do not match."
+      );
+      return;
+    }
+
+    const checks = getPasswordChecks({
+      password: form.password,
+      name: form.name,
+      email: form.email,
+    });
+
+    if (
+      checks.some(
+        ([, valid]) => !valid
+      )
+    ) {
+      setError(
+        "Please satisfy all password security requirements."
+      );
       return;
     }
 
@@ -42,7 +83,9 @@ export default function Register({ onLogin }) {
         form.password,
       );
     } catch (error) {
-      setError(error.message);
+      setError(
+        error.message
+      );
     } finally {
       setLoading(false);
     }
@@ -56,7 +99,7 @@ export default function Register({ onLogin }) {
         <section className="hidden lg:block">
           <div className="badge mb-6 border-fuchsia-400/20 bg-fuchsia-400/10 text-fuchsia-200">
             <Sparkles size={13} />
-            Local-first identity
+            Secure local identity
           </div>
 
           <h1 className="max-w-xl text-6xl font-bold leading-[1.04] tracking-tight">
@@ -68,8 +111,9 @@ export default function Register({ onLogin }) {
           </h1>
 
           <p className="mt-6 max-w-lg text-base leading-8 text-zinc-500">
-            Your password is hashed before storage and your local
-            workspace remains under your control.
+            Strong password rules, disposable-email
+            protection and local account storage keep
+            your workspace safer by default.
           </p>
         </section>
 
@@ -88,62 +132,109 @@ export default function Register({ onLogin }) {
               <div className="mb-5 grid h-12 w-12 place-items-center rounded-2xl bg-emerald-500/10 text-emerald-300">
                 <ShieldCheck size={22} />
               </div>
+
               <h2 className="text-2xl font-bold tracking-tight">
                 Create your workspace
               </h2>
+
               <p className="mt-2 text-sm text-zinc-500">
-                Set up your local AI Workplace account.
+                Temporary email providers are blocked
+                automatically.
               </p>
             </div>
 
             <form onSubmit={submit}>
-              <label className="label">Name</label>
+              <label className="label">
+                Name
+              </label>
+
               <input
                 className="input"
                 required
                 minLength={2}
                 value={form.name}
-                onChange={(event) => update("name", event.target.value)}
+                onChange={
+                  (event) =>
+                    update(
+                      "name",
+                      event.target.value,
+                    )
+                }
                 placeholder="Your name"
               />
 
-              <label className="label mt-4">Email</label>
+              <label className="label mt-4">
+                Email
+              </label>
+
               <input
                 className="input"
                 type="email"
                 required
                 autoComplete="email"
                 value={form.email}
-                onChange={(event) => update("email", event.target.value)}
+                onChange={
+                  (event) =>
+                    update(
+                      "email",
+                      event.target.value,
+                    )
+                }
                 placeholder="you@company.com"
               />
 
-              <label className="label mt-4">Password</label>
+              <label className="label mt-4">
+                Password
+              </label>
+
               <input
                 className="input"
                 type="password"
                 required
-                minLength={8}
+                minLength={12}
+                maxLength={128}
                 autoComplete="new-password"
                 value={form.password}
-                onChange={(event) => update("password", event.target.value)}
-                placeholder="Minimum 8 characters"
+                onChange={
+                  (event) =>
+                    update(
+                      "password",
+                      event.target.value,
+                    )
+                }
+                placeholder="Create a strong password"
               />
 
-              <label className="label mt-4">Confirm password</label>
+              <PasswordStrength
+                password={form.password}
+                name={form.name}
+                email={form.email}
+              />
+
+              <label className="label mt-4">
+                Confirm password
+              </label>
+
               <input
                 className="input"
                 type="password"
                 required
-                minLength={8}
+                minLength={12}
+                maxLength={128}
                 autoComplete="new-password"
                 value={form.confirm}
-                onChange={(event) => update("confirm", event.target.value)}
+                onChange={
+                  (event) =>
+                    update(
+                      "confirm",
+                      event.target.value,
+                    )
+                }
                 placeholder="Repeat your password"
               />
 
               {error && (
-                <div className="mt-4 rounded-2xl border border-red-900/40 bg-red-950/20 p-3 text-xs text-red-300">
+                <div className="mt-4 rounded-2xl border border-red-900/40 bg-red-950/20 p-3 text-xs leading-5 text-red-300">
                   {error}
                 </div>
               )}
@@ -152,7 +243,9 @@ export default function Register({ onLogin }) {
                 className="btn-primary mt-6 w-full"
                 disabled={loading}
               >
-                {loading ? "Creating account…" : "Create account"}
+                {loading
+                  ? "Creating account…"
+                  : "Create account"}
                 <ArrowRight size={16} />
               </button>
             </form>

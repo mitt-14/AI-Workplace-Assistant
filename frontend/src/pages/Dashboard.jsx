@@ -77,7 +77,7 @@ export default function Dashboard() {
         <div className="absolute -right-14 -top-20 h-64 w-64 rounded-full bg-indigo-500/20 blur-3xl" />
         <div className="relative z-10 max-w-3xl">
           <span className="badge mb-5 border-indigo-400/20 bg-indigo-400/10 text-indigo-200">
-            Phase 13 · React Experience
+            Unified AI Workspace
           </span>
           <h2 className="text-2xl font-bold tracking-tight sm:text-3xl">
             One interface. Every AI capability.

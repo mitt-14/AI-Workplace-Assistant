@@ -1,17 +1,33 @@
 from datetime import datetime
 
-from pydantic import BaseModel, EmailStr, Field
+from pydantic import (
+    BaseModel,
+    EmailStr,
+    Field,
+)
 
 
 class UserRegisterRequest(BaseModel):
-    name: str = Field(min_length=2, max_length=100)
+    name: str = Field(
+        min_length=2,
+        max_length=100,
+    )
+
     email: EmailStr
-    password: str = Field(min_length=8, max_length=128)
+
+    password: str = Field(
+        min_length=12,
+        max_length=128,
+    )
 
 
 class UserLoginRequest(BaseModel):
     email: EmailStr
-    password: str = Field(min_length=1, max_length=128)
+
+    password: str = Field(
+        min_length=1,
+        max_length=128,
+    )
 
 
 class UserResponse(BaseModel):
@@ -26,3 +42,27 @@ class AuthResponse(BaseModel):
     token_type: str = "bearer"
     expires_in_seconds: int
     user: UserResponse
+
+
+class ForgotPasswordRequest(BaseModel):
+    email: EmailStr
+
+
+class ForgotPasswordResponse(BaseModel):
+    message: str
+
+
+class ResetPasswordRequest(BaseModel):
+    token: str = Field(
+        min_length=20,
+        max_length=300,
+    )
+
+    new_password: str = Field(
+        min_length=12,
+        max_length=128,
+    )
+
+
+class ResetPasswordResponse(BaseModel):
+    message: str

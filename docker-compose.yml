@@ -1,0 +1,123 @@
+services:
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: ai-workplace-backend
+    restart: unless-stopped
+    environment:
+      APP_NAME: ${APP_NAME:-AI Workplace Assistant}
+      APP_VERSION: ${APP_VERSION:-1.0.0}
+      ENVIRONMENT: ${ENVIRONMENT:-production}
+      LOG_LEVEL: ${LOG_LEVEL:-INFO}
+
+      DEFAULT_LLM_PROVIDER: ${DEFAULT_LLM_PROVIDER:-ollama}
+
+      OLLAMA_MODEL: ${OLLAMA_MODEL:-llama3.1}
+      OLLAMA_BASE_URL: ${OLLAMA_BASE_URL:-http://host.docker.internal:11434}
+      EMBEDDING_MODEL: ${EMBEDDING_MODEL:-embeddinggemma}
+
+      GEMINI_API_KEY: ${GEMINI_API_KEY:-}
+      GEMINI_MODEL: ${GEMINI_MODEL:-gemini-1.5-flash}
+
+      JWT_SECRET_KEY: ${JWT_SECRET_KEY:?JWT_SECRET_KEY must be set in the root .env file}
+      JWT_ALGORITHM: ${JWT_ALGORITHM:-HS256}
+      JWT_ACCESS_TOKEN_EXPIRE_MINUTES: ${JWT_ACCESS_TOKEN_EXPIRE_MINUTES:-60}
+
+
+      EMAIL_DOMAIN_MODE: ${EMAIL_DOMAIN_MODE:-deny_disposable}
+      ALLOWED_EMAIL_DOMAINS: ${ALLOWED_EMAIL_DOMAINS:-}
+      BLOCK_DISPOSABLE_EMAILS: ${BLOCK_DISPOSABLE_EMAILS:-true}
+
+      PASSWORD_RESET_EXPIRE_MINUTES: ${PASSWORD_RESET_EXPIRE_MINUTES:-15}
+      PASSWORD_RESET_COOLDOWN_SECONDS: ${PASSWORD_RESET_COOLDOWN_SECONDS:-60}
+      PASSWORD_RESET_DELIVERY_MODE: ${PASSWORD_RESET_DELIVERY_MODE:-smtp}
+      PASSWORD_RESET_FRONTEND_URL: ${PASSWORD_RESET_FRONTEND_URL:-http://localhost:8080}
+
+      SMTP_HOST: ${SMTP_HOST:-}
+      SMTP_PORT: ${SMTP_PORT:-587}
+      SMTP_USERNAME: ${SMTP_USERNAME:-}
+      SMTP_PASSWORD: ${SMTP_PASSWORD:-}
+      SMTP_FROM_EMAIL: ${SMTP_FROM_EMAIL:-}
+      SMTP_USE_TLS: ${SMTP_USE_TLS:-true}
+
+      USER_DATABASE_PATH: /app/data/users.db
+      WORKFLOW_DATABASE_PATH: /app/data/workflows.db
+      CONVERSATION_DATABASE_PATH: /app/data/conversations.db
+      DOCUMENT_ANALYSIS_DIRECTORY: /app/data/document_analyses
+      UPLOAD_DIRECTORY: /app/uploads
+      CHROMA_DIRECTORY: /app/chroma_db
+
+      MAX_UPLOAD_SIZE_MB: ${MAX_UPLOAD_SIZE_MB:-10}
+      ALLOWED_FILE_TYPES: ${ALLOWED_FILE_TYPES:-application/pdf,text/plain}
+
+      DOCUMENT_ANALYSIS_CHUNK_CHARACTERS: ${DOCUMENT_ANALYSIS_CHUNK_CHARACTERS:-18000}
+      DOCUMENT_ANALYSIS_CHUNK_OVERLAP_CHARACTERS: ${DOCUMENT_ANALYSIS_CHUNK_OVERLAP_CHARACTERS:-300}
+      DOCUMENT_ANALYSIS_MAX_CHUNKS: ${DOCUMENT_ANALYSIS_MAX_CHUNKS:-10}
+      DOCUMENT_ANALYSIS_CONCURRENCY: ${DOCUMENT_ANALYSIS_CONCURRENCY:-2}
+      DOCUMENT_ANALYSIS_USE_LLM_SYNTHESIS: ${DOCUMENT_ANALYSIS_USE_LLM_SYNTHESIS:-false}
+      DOCUMENT_ANALYSIS_CACHE_ENABLED: ${DOCUMENT_ANALYSIS_CACHE_ENABLED:-true}
+
+      EMAIL_ANALYSIS_BATCH_CONCURRENCY: ${EMAIL_ANALYSIS_BATCH_CONCURRENCY:-2}
+      MEETING_ANALYSIS_MAX_CHARACTERS: ${MEETING_ANALYSIS_MAX_CHARACTERS:-30000}
+
+      AGENT_DEFAULT_MAX_STEPS: ${AGENT_DEFAULT_MAX_STEPS:-5}
+      AGENT_STOP_ON_TOOL_ERROR: ${AGENT_STOP_ON_TOOL_ERROR:-false}
+
+      CHUNK_SIZE: ${CHUNK_SIZE:-1000}
+      CHUNK_OVERLAP: ${CHUNK_OVERLAP:-200}
+      DEFAULT_SEARCH_RESULTS: ${DEFAULT_SEARCH_RESULTS:-3}
+      MAXIMUM_SEARCH_RESULTS: ${MAXIMUM_SEARCH_RESULTS:-10}
+      MINIMUM_RELEVANCE_SCORE: ${MINIMUM_RELEVANCE_SCORE:-0.44}
+      MAXIMUM_CONVERSATION_MESSAGES: ${MAXIMUM_CONVERSATION_MESSAGES:-10}
+      HYBRID_SEMANTIC_WEIGHT: ${HYBRID_SEMANTIC_WEIGHT:-0.7}
+      HYBRID_KEYWORD_WEIGHT: ${HYBRID_KEYWORD_WEIGHT:-0.3}
+    volumes:
+      - app_data:/app/data
+      - uploads:/app/uploads
+      - chroma_data:/app/chroma_db
+    ports:
+      - "127.0.0.1:${BACKEND_PORT:-8000}:8000"
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    healthcheck:
+      test:
+        [
+          "CMD",
+          "python",
+          "-c",
+          "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8000/health', timeout=3)"
+        ]
+      interval: 15s
+      timeout: 5s
+      retries: 5
+      start_period: 20s
+
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+      args:
+        VITE_API_BASE_URL: /api
+    container_name: ai-workplace-frontend
+    restart: unless-stopped
+    depends_on:
+      backend:
+        condition: service_healthy
+    ports:
+      - "${FRONTEND_PORT:-8080}:80"
+    healthcheck:
+      test:
+        [
+          "CMD-SHELL",
+          "wget -qO- http://127.0.0.1/healthz >/dev/null || exit 1"
+        ]
+      interval: 15s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+
+volumes:
+  app_data:
+  uploads:
+  chroma_data:

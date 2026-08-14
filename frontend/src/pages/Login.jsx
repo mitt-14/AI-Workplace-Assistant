@@ -10,7 +10,7 @@ import {
 import AmbientBackground from "../components/AmbientBackground";
 import { useAuth } from "../context/AuthContext";
 
-export default function Login({ onRegister }) {
+export default function Login({ onRegister, onForgot }) {
   const { login } = useAuth();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -39,7 +39,7 @@ export default function Login({ onRegister }) {
         <section className="hidden lg:block">
           <div className="badge mb-6 border-indigo-400/20 bg-indigo-400/10 text-indigo-200">
             <Sparkles size={13} />
-            Phase 14 · Secure Workspace
+            Secure Workspace
           </div>
 
           <h1 className="max-w-xl bg-gradient-to-r from-white via-zinc-100 to-zinc-500 bg-clip-text text-6xl font-bold leading-[1.04] tracking-tight text-transparent">
@@ -103,6 +103,17 @@ export default function Login({ onRegister }) {
                 onChange={(event) => setPassword(event.target.value)}
                 placeholder="Your password"
               />
+
+
+              <div className="mt-3 text-right">
+                <button
+                  type="button"
+                  onClick={onForgot}
+                  className="text-xs font-semibold text-indigo-300 transition hover:text-indigo-200"
+                >
+                  Forgot password?
+                </button>
+              </div>
 
               {error && (
                 <div className="mt-4 rounded-2xl border border-red-900/40 bg-red-950/20 p-3 text-xs text-red-300">

@@ -1,38 +1,198 @@
+# ============================================================
+# AI Workplace Assistant
+# ============================================================
+
+# ----------------------------
+# Secrets / environment files
+# ----------------------------
+.env
+.env.*
+!.env.example
+
+backend/.env
+backend/.env.*
+!backend/.env.example
+
+frontend/.env
+frontend/.env.*
+!frontend/.env.example
+
+# Private keys / certificates
+*.pem
+*.key
+*.p12
+*.pfx
+*.crt
+*.cer
+
+# ----------------------------
 # Python
+# ----------------------------
 __pycache__/
-*.pyc
+*.py[cod]
+*$py.class
+*.so
 
-
-# Virtual environments
 .aiass/
+.venv/
 venv/
 env/
+ENV/
 
-# Environment / secrets
-.env
-backend/.env
-frontend/.env
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.coverage
+.coverage.*
+htmlcov/
+coverage.xml
 
-# Node
+*.egg-info/
+.eggs/
+dist/
+build/
+
+# ----------------------------
+# Node / Vite
+# ----------------------------
 node_modules/
 frontend/node_modules/
-frontend/dist/
 
-# IDE
+frontend/dist/
+dist/
+
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+
+# Local Vite configuration
+*.local
+
+# ----------------------------
+# Application data
+# ----------------------------
+
+# SQLite databases
+*.db
+*.db-shm
+*.db-wal
+*.sqlite
+*.sqlite3
+
+# User/account databases
+users.db
+auth.db
+
+# Password reset data
+password_reset*.db
+
+# ----------------------------
+# Uploaded documents
+# ----------------------------
+uploads/
+backend/uploads/
+data/uploads/
+
+# ----------------------------
+# Generated document analysis
+# ----------------------------
+analyses/
+backend/analyses/
+data/analyses/
+
+# ----------------------------
+# RAG / Vector databases
+# ----------------------------
+chroma/
+chroma_db/
+chroma_data/
+backend/chroma/
+backend/chroma_db/
+
+# ----------------------------
+# Runtime application data
+# ----------------------------
+data/
+backend/data/
+
+# Keep intentionally versioned static data if needed
+!backend/app/security/disposable_domains.txt
+
+# ----------------------------
+# Logs
+# ----------------------------
+*.log
+logs/
+backend/logs/
+
+# ----------------------------
+# Temporary files
+# ----------------------------
+tmp/
+temp/
+*.tmp
+*.temp
+*.swp
+*.swo
+
+# ----------------------------
+# macOS
+# ----------------------------
+.DS_Store
+.AppleDouble
+.LSOverride
+._*
+
+# ----------------------------
+# Windows
+# ----------------------------
+Thumbs.db
+Desktop.ini
+
+# ----------------------------
+# IDEs / editors
+# ----------------------------
 .vscode/
 .idea/
+*.iml
 
-# OS
-.DS_Store
+# ----------------------------
+# Docker local overrides
+# ----------------------------
+docker-compose.override.yml
+compose.override.yml
 
-# App data
-uploads/
-chroma_db/
-*.db
+# ----------------------------
+# Project ZIPs / archives
+# ----------------------------
+*.zip
+*.tar
+*.tar.gz
+*.tgz
+*.7z
+*.rar
 
-# Logs
-*.log
+# ----------------------------
+# Credentials / tokens
+# ----------------------------
+credentials.json
+secrets.json
+secret.json
+tokens.json
+token.json
 
-#uploads/
-uploads/*
-!uploads/.gitkeep
+*_credentials.json
+*_secrets.json
+*_token.json
+*_tokens.json
+
+# Google / Gmail credentials
+client_secret*.json
+google_credentials*.json
+
+# ----------------------------
+# Miscellaneous
+# ----------------------------
+.cache/
+.cache

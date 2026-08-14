@@ -1,7 +1,7 @@
 {
   "name": "ai-workplace-assistant-frontend",
   "private": true,
-  "version": "0.13.1",
+  "version": "1.0.0",
   "type": "module",
   "scripts": {
     "dev": "vite",

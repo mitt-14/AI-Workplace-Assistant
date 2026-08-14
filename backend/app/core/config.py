@@ -5,7 +5,7 @@ from pydantic_settings import BaseSettings, SettingsConfigDict
 
 class Settings(BaseSettings):
     app_name: str = "AI Workplace Assistant"
-    app_version: str = "0.14.0"
+    app_version: str = "1.0.0"
     environment: str = "development"
     log_level: str = "INFO"
 
@@ -49,6 +49,24 @@ class Settings(BaseSettings):
     jwt_secret_key: str = "CHANGE_ME_IN_BACKEND_ENV"
     jwt_algorithm: str = "HS256"
     jwt_access_token_expire_minutes: int = 60
+
+
+    # Account security hardening
+    email_domain_mode: str = "deny_disposable"
+    allowed_email_domains: str = ""
+    block_disposable_emails: bool = True
+
+    password_reset_expire_minutes: int = 15
+    password_reset_cooldown_seconds: int = 60
+    password_reset_delivery_mode: str = "smtp"
+    password_reset_frontend_url: str = "http://127.0.0.1:5173"
+
+    smtp_host: str | None = None
+    smtp_port: int = 587
+    smtp_username: str | None = None
+    smtp_password: str | None = None
+    smtp_from_email: str | None = None
+    smtp_use_tls: bool = True
 
     # Phase 12: AI Agents
     agent_default_max_steps: int = 5

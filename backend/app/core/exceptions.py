@@ -286,3 +286,55 @@ class EmailAlreadyRegisteredError(ApplicationError):
             status_code=409,
             error_code="EMAIL_ALREADY_REGISTERED",
         )
+
+
+class PasswordPolicyError(ApplicationError):
+    def __init__(
+        self,
+        message: str = "The password does not meet the security policy.",
+    ) -> None:
+        super().__init__(
+            message=message,
+            status_code=400,
+            error_code="PASSWORD_POLICY_ERROR",
+        )
+
+
+class DisposableEmailNotAllowedError(ApplicationError):
+    def __init__(self) -> None:
+        super().__init__(
+            message=(
+                "Disposable or temporary email addresses "
+                "cannot be used for registration."
+            ),
+            status_code=400,
+            error_code="DISPOSABLE_EMAIL_NOT_ALLOWED",
+        )
+
+
+class EmailDomainNotAllowedError(ApplicationError):
+    def __init__(
+        self,
+        message: str = (
+            "This email domain is not allowed "
+            "for registration."
+        ),
+    ) -> None:
+        super().__init__(
+            message=message,
+            status_code=400,
+            error_code="EMAIL_DOMAIN_NOT_ALLOWED",
+        )
+
+
+class InvalidPasswordResetTokenError(ApplicationError):
+    def __init__(self) -> None:
+        super().__init__(
+            message=(
+                "The password-reset token is invalid, "
+                "expired, or has already been used."
+            ),
+            status_code=400,
+            error_code="INVALID_PASSWORD_RESET_TOKEN",
+        )
+
