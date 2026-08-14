@@ -95,7 +95,7 @@ ollama --version
 ### Clone
 
 ```bash
-git clone YOUR_GITHUB_REPOSITORY_URL
+git clone https://github.com/mitt-14/AI-Workplace-Assistant.git
 cd AI-Workplace-Assistant
 ```
 
